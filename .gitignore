@@ -1,0 +1,27 @@
+# Dependency 디렉토리
+node_modules/
+
+# 빌드 결과물
+dist/
+build/
+out/
+
+# 환경 변수 및 시크릿
+.env
+.env.*
+.env.local
+
+# 로그 파일
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# 운영체제/에디터 파일
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# 기타 임시 파일
+*.log
+*.tsbuildinfo
