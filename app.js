@@ -116,7 +116,8 @@ app.get("/scrape", async (req, res) => {
     }
 
     console.log("[scrape] 본문 길이:", content.length);
-    return res.json({ content });
+    const htmlContent = content.replace(/\n/g, "  ");
+    return res.json({ htmlContent });
   } catch (err) {
     console.error(err);
     return res.status(500).json({ error: "Failed to fetch data" });
