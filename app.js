@@ -35,11 +35,11 @@ const PRESS_SELECTORS = {
   이투데이: "div.articleView",
   스포츠조선: "div.news_text",
   Chosun: ".article-body",
-  한겨례: "p.text",
+  한겨례: "div.article-text p.text",
 };
 
 // 3. 본문 크롤링 함수
-async function fetchArticleBody(url, selector) {
+async function fetchArticleBody(url, selector, press = "") {
   const { data: buf } = await axios.get(url, {
     headers: {
       "User-Agent":
@@ -54,23 +54,41 @@ async function fetchArticleBody(url, selector) {
 
   const html = iconv.decode(buf, "utf-8");
   const $ = cheerio.load(html);
-  const $body = $(selector);
 
   let content = "";
-  if ($body.length) {
-    content = $body
-      .html()
-      .replace(/<br\s*\/?>/gi, "\n")
-      .replace(/<[^>]+>/g, "")
+
+  // Hani(한겨레)일 때는 모든 p.text를 줄바꿈으로 합치기
+  if (press === "Hani" || press === "한겨례") {
+    const paragraphs = $(selector);
+    content = paragraphs
+      .map((i, el) => $(el).text().trim())
+      .get()
+      .join("\n")
       .replace(/\n{2,}/g, "\n")
-      .replace(/^\s+|\s+$/gm, "")
       .trim();
+
+    // 만약 결과가 너무 짧으면 fallback
+    if (!content || content.length < 30) {
+      const $body = $(selector);
+      content = $body.text().trim();
+    }
   } else {
-    content = $(".text_area").text().trim();
+    // 기존 방식
+    const $body = $(selector);
+    if ($body.length) {
+      content = $body
+        .html()
+        .replace(/<br\s*\/?>/gi, "\n")
+        .replace(/<[^>]+>/g, "")
+        .replace(/\n{2,}/g, "\n")
+        .replace(/^\s+|\s+$/gm, "")
+        .trim();
+    } else {
+      content = $(".text_area").text().trim();
+    }
   }
   return content;
 }
-
 // 4. 엔드포인트: source_name → PRESS_SELECTORS 키 매핑
 app.get("/scrape", async (req, res) => {
   const { source_name, url } = req.query;
@@ -90,7 +108,8 @@ app.get("/scrape", async (req, res) => {
   }
 
   try {
-    const content = await fetchArticleBody(url, selector);
+    // pressKey를 함께 넘겨야 한겨레 등 특수 처리 가능
+    const content = await fetchArticleBody(url, selector, pressKey);
 
     if (!content) {
       return res.status(404).json({ error: "본문을 찾을 수 없습니다." });
